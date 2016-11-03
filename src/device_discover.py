@@ -7,6 +7,8 @@ import urllib2
 import urlparse 
 import xml.etree.ElementTree as xmltree 
 import socket
+from utils import xml_to_info
+
 
 SSDP_BROADCAST_PORT = 1900
 #SSDP_BROADCAST_ADDR = "10.151.61.255"
@@ -21,7 +23,7 @@ SSDP_BROADCAST_PARAMS = ["M-SEARCH * HTTP/1.1",
 
 SSDP_BROADCAST_MSG = "\r\n".join(SSDP_BROADCAST_PARAMS)
 
-UDNP_DEFAULT_SERVICE_TYPE ="urn:schemas-upnp-org:service:AVTransport:1"
+
 
 def register_dev(list):
     
@@ -42,7 +44,7 @@ def probe_dev(timeout=3.0):
     while True:
          
         try: 
-            data, addr = s.recvfrom(1024)
+            data, _ = s.recvfrom(1024)
         except socket.timeout:
             break
         
