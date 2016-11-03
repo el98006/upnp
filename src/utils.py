@@ -13,9 +13,9 @@ def print_element(item):
     #service_value = item.text.encode('utf8').rsplit(':',2)[1]
     print '{} = {}'.format(item.tag, item.text)
     
-def xml_to_info():
-    with open('xiaomi.xml','rt') as fh:
-        xml = fh.read()
+def xml_to_info(xml):
+    #with open('xiaomi.xml','rt') as fh:
+    #    xml = fh.read()
     xml = re.sub(' xmlns=\"[^\"]+\"','', xml, 1)
     info = xt.fromstring(xml)    
     '''

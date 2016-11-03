@@ -7,6 +7,7 @@ import urllib2
 import urlparse 
 import xml.etree.ElementTree as xmltree 
 import socket
+import xml.etree.ElementTree as xt
 from utils import xml_to_info
 
 
@@ -25,12 +26,19 @@ SSDP_BROADCAST_MSG = "\r\n".join(SSDP_BROADCAST_PARAMS)
 
 
 
-def register_dev(list):
+def register_dev(url_list):
     
-    for item in list:
-        print item 
+    for url in url_list:
+        fh = urllib2.urlopen(url)
+        dev_details = fh.read()
+        print url
+        xml_to_info(dev_details)
         
- 
+        
+def parse_probe_result(xml):
+           
+    c= xt.fromstring(xml)
+    
 def probe_dev(timeout=3.0):
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
     s.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 4)
@@ -55,14 +63,14 @@ def probe_dev(timeout=3.0):
         except:
             pass
     device_urls = [device["location"] for device in devices if "AVTransport" in device['st']]
-    print devices
+    
     register_dev(device_urls)
     
     
          
          
 if __name__ == '__main__':
-    devices = probe_dev()
+    devices = probe_dev(timeout=5.0)
     
     
          
