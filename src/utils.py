@@ -6,10 +6,8 @@ Created on Nov 2, 2016
 import urllib2
 import re
 import xml.etree.ElementTree as xt
-from idlelib.idle_test.mock_tk import Event
-from matplotlib.cbook import Null
 
-UDNP_SERVICE ='urn:schemas-upnp-org:service'
+UPNP_SERVICE ='urn:schemas-upnp-org:service'
 SUB_MSG_TEMPLATE = ['SUBSCRIBE {} HTTP/1.1',  
 'HOST: {}',
 'CALLBACK: {}',
@@ -84,8 +82,9 @@ class upnp_service:
         fh = urllib2.urlopen(self.scpdurl)
         resp = fh.read()
         root = xt.fromstring(resp)
-        for item in root.FindAll(ns.format('actionList/action')):
-            action_name = item.FindAll(ns.format('actionList/action/name'))
+        for item in root.findall('actionList/action'):
+            action_name = item.findall('actionList/action/name')
+            print action_name.text
             new_action = upnp_action(action_name.text, self.control_url)
             self.action_list.append(new_action)
     
@@ -133,13 +132,20 @@ def xml_to_info(xml, root_url):
     friendly_name = info.find('./device/friendlyName').text 
     print friendly_name
     for s in info.findall('./device/serviceList/service'):  
-        s_type = s.find('serviceType')
-        print_element(s_type)
-        print_element(s.find('serviceId'))
-        print_element(s.find('controlURL'))
-        service_node = upnp_service(s.find('serviceId').text, s_type.text)
-        service_node.scpdurl = root_url + s.find('SCPDURL')
+        s_type = s.find('serviceType').text
+        print 's_type -> {}'.format(s_type)
+        print 'serviceId -> {}'.format(s.find('serviceId').text)
+        print 'control_url -> {}'.format( s.find('controlURL').text)
+        service_node = upnp_service(s_type, s.find('serviceId').text)
+
+        print root_url
+        
+        host_ip_port = root_url.rsplit('/', 3)[0]
+        service_url = host_ip_port + s.find('SCPDURL').text
+        print 'service_url ->{}'.format(service_url)
+        
         print(service_node)
+        service_node.set_scpdurl(service_url)
         service_node.get_service_actions()
         service_list.append(service_node)
         
