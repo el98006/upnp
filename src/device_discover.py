@@ -32,7 +32,7 @@ def register_dev(url_list):
         fh = urllib2.urlopen(url)
         dev_details = fh.read()
         print url
-        xml_to_info(dev_details)
+        xml_to_info(dev_details, url)
         
         
 def parse_probe_result(xml):
