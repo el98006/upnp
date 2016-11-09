@@ -4,8 +4,6 @@ Created on Nov 1, 2016
 @author: eli
 '''
 import urllib2
-import urlparse 
-import xml.etree.ElementTree as xmltree 
 import socket
 import xml.etree.ElementTree as xt
 from utils import xml_to_info
@@ -35,9 +33,6 @@ def register_dev(url_list):
         xml_to_info(dev_details, url)
         
         
-def parse_probe_result(xml):
-           
-    c= xt.fromstring(xml)
     
 def probe_dev(timeout=3.0):
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
@@ -70,7 +65,7 @@ def probe_dev(timeout=3.0):
          
          
 if __name__ == '__main__':
-    devices = probe_dev(timeout=5.0)
+    devices = probe_dev(10)
     
     
          

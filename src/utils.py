@@ -6,6 +6,7 @@ Created on Nov 2, 2016
 import urllib2
 import re
 import xml.etree.ElementTree as xt
+import xml
 
 UPNP_SERVICE ='urn:schemas-upnp-org:service'
 SUB_MSG_TEMPLATE = ['SUBSCRIBE {} HTTP/1.1',  
@@ -21,7 +22,17 @@ POST_MSG_TEMPLATE = {
 #    "SOAPACTION"     : "\"{}#{}\""
 } 
                      
+NAME_SPACE = {'service_type': 'urn:schemas-upnp-org:service', 'service_id':'urn:upnp-org'}
 
+def extrac_host_info(url):
+    pattern = re.compile('http\:\/\/\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}(\:\d+)?')
+    
+    m = re.match(pattern, url)
+    if m:
+        host_ip_port = m.group(0)
+    else:
+        host_ip_port = ''
+    return host_ip_port
 
 class upnp_action:
     '''
@@ -32,16 +43,18 @@ class upnp_action:
     methods: execute()
     '''
     
-    def __init__(self, action_name, control_url):
+    def __init__(self, action_name=''):
         self.name = action_name
         self.argument_list  = []
-        self.control_url = control_url
+
         
+    def __eq__(self, other_action):
+        return self.name == other_action.name 
     
+    def __repr__(self):
+        return '\tActionName: {}'.format(self.name)
     
-    def execute(self):
-        urllib2.Request(self.control_url,data=None, headers ={})
-        urllib2.Request
+      
         
 class upnp_service:
     ''' service_type: 'AVTransport:1', serviceId: AVTransport, scpdurl:'/AVTransport1.xml'
@@ -75,23 +88,31 @@ class upnp_service:
         stateTable and actionLists
         stableTable: name, dataType, allowedValue
         action: name, argumentList, 
-        argument: name, direciton, relatedStableVariable
+        argument: name, direction, relatedStableVariable
         
         '''
-        ns = "{schemas-upnp-org:service-1-0}:{}"
+        
         fh = urllib2.urlopen(self.scpdurl)
         resp = fh.read()
+        '''
+        with open('AVTransport1.xml', 'rt') as xml:
+            resp = xml.read()
+        '''
+        resp = re.sub(' xmlns=\"[^\"]+\"','', resp, 1)
         root = xt.fromstring(resp)
-        for item in root.findall('actionList/action'):
-            action_name = item.findall('actionList/action/name')
-            print action_name.text
-            new_action = upnp_action(action_name.text, self.control_url)
+        for item in root.findall('./actionList/action'):
+            action_name = item.find('name')
+            new_action = upnp_action(action_name.text)
+            print new_action
             self.action_list.append(new_action)
     
     def __repr__(self):
-        return 'id:{} type:{} \n scpdurl:{}, control_url:{}'.format(self.id, self.service_type, self.scpdurl, self.control_url )
+        return 'service id:{} type:{}\nscpdurl:{}\ncontrol_url:{}\n'.format(self.id, self.service_type, self.scpdurl, self.control_url )
     
-        
+    def do_action(self, upnp_action):
+        ''' accept an action object, create payload and send to service control_url and perform an action,
+        return result
+        '''    
         
         
         
@@ -133,26 +154,31 @@ def xml_to_info(xml, root_url):
     print friendly_name
     for s in info.findall('./device/serviceList/service'):  
         s_type = s.find('serviceType').text
-        print 's_type -> {}'.format(s_type)
-        print 'serviceId -> {}'.format(s.find('serviceId').text)
-        print 'control_url -> {}'.format( s.find('controlURL').text)
-        service_node = upnp_service(s_type, s.find('serviceId').text)
-
-        print root_url
+        s_type = re.sub(NAME_SPACE['service_type'], '', s_type)
         
-        host_ip_port = root_url.rsplit('/', 3)[0]
-        service_url = host_ip_port + s.find('SCPDURL').text
-        print 'service_url ->{}'.format(service_url)
+        service_id = s.find('serviceId').text
+        service_id = re.sub(NAME_SPACE['service_id'], '',s_type )
+
+        service_node = upnp_service(s_type, service_id)
+        host_ip_port = extrac_host_info(root_url)
+        scpd_url = host_ip_port + s.find('SCPDURL').text
+        
+        control_url = host_ip_port + s.find('controlURL').text
+        service_node.set_scpdurl(scpd_url)
+        service_node.set_control_url(control_url)
         
         print(service_node)
-        service_node.set_scpdurl(service_url)
+        
         service_node.get_service_actions()
         service_list.append(service_node)
         
 
         
     
+'''
 
-
-#if __name__ == '__main__':
-#    xml_to_info()
+if __name__ == '__main__':
+    s = upnp_service('AVTransport:1', 'AVTransport:1')
+    s.set_control_url('/xml/AVTransport1')
+    s.get_service_actions()
+'''
