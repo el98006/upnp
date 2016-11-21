@@ -5,11 +5,14 @@
     <link rel="stylesheet" href="http://netdna.bootstrapcdn.com/bootstrap/3.1.0/css/bootstrap.min.css"/>
 </head>
 <body>
-   <p> file_list {{file_list}} </p>
-    <ul> 
-       {% for item  in file_list %}
-         <li {{item}} </li>
+   <div>
+   <p> Files on the server  </p>
+    <ul>
+       {% for my_item  in file_list %}
+         <li> <img src="/pics/{{ filename }}"> </li>
+	# <li> <img src={{my_item}} > </li>
        {% endfor %}
-    </ul>
+    </ul>  
+    </div>
 </body>
 </html>
