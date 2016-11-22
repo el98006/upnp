@@ -3,7 +3,7 @@ Created on Nov 11, 2016
 
 @author: eric
 '''
-from flask import Flask,send_from_directory,request, render_template
+from flask import Flask,send_from_directory,request, render_template, url_for
 import os
 
 #from flask import Response
@@ -36,7 +36,7 @@ def browse_stored_file():
     my_dir = os.path.dirname(__file__)
     file_path = os.path.join(my_dir, 'pics')
     #file_list = [ os.path.join(my_dir, item)  for item in os.listdir(file_path) ]
-    file_list = [  item  for item in os.listdir(file_path) ]
+    file_list = [ url_for('static', filename=item)  for item in os.listdir(file_path) ]
     
     return(render_template('list.html', file_list=file_list))
     

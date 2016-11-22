@@ -9,8 +9,7 @@
    <p> Files on the server  </p>
     <ul>
        {% for my_item  in file_list %}
-         <li> <img src="/pics/{{ filename }}"> </li>
-	# <li> <img src={{my_item}} > </li>
+	 <li> <img id='my_item' src="{{my_item}}" > </li>
        {% endfor %}
     </ul>  
     </div>
