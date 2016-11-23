@@ -8,11 +8,11 @@
 {% if filename %}
     <div> 
 	filename {{filename}} 
-	<source src="uploads/{{ filename }}" type="image/png">
+	<source src="media/{{ filename }}" type="image/png">
     </div>
     <p>
-            <a href="{{ url_for('index') }}" class="btn btn-primary">Home</a>
-            <a href="/pics/{{ filename }}" class="btn btn-info">Download</a>
+            <a href="{{ url_for('browse_uploaded_files') }}" class="btn btn-primary">Home</a>
+            <a href="/media/{{ filename }}" class="btn btn-info">Download</a>
             <a href="{{ url_for('upload') }} " class="btn btn-danger">Upload Another</a>
     </p> 
 
