@@ -62,6 +62,8 @@ def probe_dev(timeout=3.0):
             devices.append(device)
         except:
             pass
+        
+   
     device_urls = [device["location"] for device in devices if "AVTransport" in device['st']]
     
     register_dev(device_urls)

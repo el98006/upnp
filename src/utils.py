@@ -6,8 +6,12 @@ Created on Nov 2, 2016
 import urllib2
 import re
 import xml.etree.ElementTree as xt
-from idlelib.idle_test.mock_tk import Event
-from matplotlib.cbook import Null
+
+SERVICE_NAMESPACE ='urn:schemas-upnp-org:service'
+SERVICE_VER = '1'
+
+A_ARG_TYPE_InstanceID = 1
+DEFAULT_PLAY_SPEED = 1
 
 UDNP_SERVICE ='urn:schemas-upnp-org:service'
 SUB_MSG_TEMPLATE = ['SUBSCRIBE {} HTTP/1.1',  
@@ -16,20 +20,47 @@ SUB_MSG_TEMPLATE = ['SUBSCRIBE {} HTTP/1.1',
 'NT: upnp:Event',
 ]
 
-POST_MSG_TEMPLATE = {
+
+
+SOAP_HEADER_TEMPLATE = {
     "Content-Type"   : "text/xml; charset=\"utf-8\"",
     "Content-Length" : "{}",
     "Connection"     : "close",
-#    "SOAPACTION"     : "\"{}#{}\""
+    "SOAPACTION"     : "{}"
 } 
-                     
+SOAP_BODY_TEMPLATE ='<?xml version="1.0"?>\
+                    <s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/" s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">\
+                    <s:Body> <u:actionName xmlns:u="urn:schemas-upnp-org:service:serviceType:v">\
+                    <argumentName>{}</argumentName> \
+                    </u:actionName>\
+                    </s:Body>\
+                    </s:Envelope>'  
+
+SOAPACTION_TEMPLATE = "urn:schemas-upnp-org:{service}:{serviceType}:v#{actionName}"
+SUB_MSG_TEMPLATE = ['SUBSCRIBE {} HTTP/1.1',  
+'HOST: {}',
+'CALLBACK: {}',
+'NT: upnp:Event',
+]
+              
+NAME_SPACE = {'service_type': 'urn:schemas-upnp-org:service', 'service_id':'urn:upnp-org'}
+                    
+def extrac_host_info(url):
+    pattern = re.compile('http\:\/\/\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}(\:\d+)?')
+    
+    m = re.match(pattern, url)
+    if m:
+        host_ip_port = m.group(0)
+    else:
+        host_ip_port = ''
+    return host_ip_port
 
 
 class upnp_action:
     '''
     action_name: Play
     argument: name = InstanceID,  direction: in, relatedStateVariable: A_ARG_TYPE_InstanceID;
-    name: Speed, direciton: in, relatedStateVariable: TransportPlaySpeed
+    name: Speed, direction: in, relatedStateVariable: TransportPlaySpeed
     
     methods: execute()
     '''
@@ -92,6 +123,8 @@ class upnp_service:
     def __repr__(self):
         return 'id:{} type:{} \n scpdurl:{}, control_url:{}'.format(self.id, self.service_type, self.scpdurl, self.control_url )
     
+    def AV_capapable(self):
+        return (self.service_type == 'AVTransport:1')
         
         
         
@@ -108,9 +141,30 @@ class upnp_service:
         
         
         
+    def invoke_PLAY(self):
+        argument = {}
+        play_action = self.action_list['Play']
+        argument['InstanceID'] = 0
+        argument['Speed'] = DEFAULT_PLAY_SPEED
+        play_content = "http://abc"
+        content_len = len(play_content)
         
+        header_soapaction = SOAPACTION_TEMPLATE.format(self.service,self.seviceType,SERVICE_VER, 'Play')
+        headers = SOAP_HEADER_TEMPLATE.format(content_len, header_soapaction )
+        resp = urllib2.Request(self.control_url, play_content, headers=header_soapaction)
+        ret = resp.read()   
          
-    
+    def invoke_SetAVTransportURI(self):
+        header_soapaction = SOAPACTION_TEMPLATE.format(self.service,self.seviceType,SERVICE_VER, 'SetAVTransportURI')
+        play_content = "http:: point to the media file"
+        content_len  = len(play_content)
+        headers = SOAP_HEADER_TEMPLATE.format(content_len, header_soapaction )
+        resp = urllib2.Request(self.control_url, play_content, headers)
+        ret = resp.read()
+        '''<CurrentURI> url to the media </CurrentURI> '''
+        headers = SOAP_HEADER_TEMPLATE.format(content_len, header_soapaction )
+        resp = urllib2.Request(self.control_url, play_content, headers)
+        ret = resp.read()
 
 
 
@@ -132,17 +186,26 @@ def xml_to_info(xml, root_url):
     '''
     friendly_name = info.find('./device/friendlyName').text 
     print friendly_name
+  
     for s in info.findall('./device/serviceList/service'):  
-        s_type = s.find('serviceType')
-        print_element(s_type)
-        print_element(s.find('serviceId'))
-        print_element(s.find('controlURL'))
-        service_node = upnp_service(s.find('serviceId').text, s_type.text)
-        service_node.scpdurl = root_url + s.find('SCPDURL')
-        print(service_node)
-        service_node.get_service_actions()
-        service_list.append(service_node)
+        s_type = s.find('serviceType').text
+        s_type = re.sub(NAME_SPACE['service_type'], '', s_type)
         
+        service_id = s.find('serviceId').text
+        service_id = re.sub(NAME_SPACE['service_id'], '',s_type )
+
+        service_node = upnp_service(s_type, service_id)
+        host_ip_port = extrac_host_info(root_url)
+        scpd_url = host_ip_port + s.find('SCPDURL').text
+        
+        control_url = host_ip_port + s.find('controlURL').text
+        service_node.set_scpdurl(scpd_url)
+        service_node.set_control_url(control_url)
+        
+        print(service_node)
+        
+        service_node.get_service_actions()
+        service_list.append(service_node)        
 
         
     
