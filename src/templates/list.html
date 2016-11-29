@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>My testing Media Server </title>
+    <link rel="stylesheet" href="http://netdna.bootstrapcdn.com/bootstrap/3.1.0/css/bootstrap.min.css"/>
+</head>
+<body>
+   <div>
+   <p> Files on the server  </p>
+    <ul>
+       {% for my_item  in file_list %}
+	 <li> <a href="/media/{{my_item}}" >  {{my_item}} </a> </li>
+       {% endfor %}
+    </ul>  
+    </div>
+</body>
+</html>
