@@ -55,6 +55,15 @@ def extract_host_info(url):
         host_ip_port = ''
     return host_ip_port
 
+def wrap_in_xml( my_arg):
+    xml_template = '<{key}> {value} </{key}>'
+    arg_list = []
+    for key, value in my_arg.items():
+        item = xml_template.format(key=key, value=value)
+        arg_list.append(item)
+    
+    return ' '.join(arg_list)
+
 class upnp_action:
     
     def __init__(self, action_name=''):
@@ -110,8 +119,7 @@ class upnp_service:
         resp = fh.read()
         resp = re.sub(' xmlns=\"[^\"]+\"','', resp, 1)
         root = xt.fromstring(resp)
-        for item in root.findall('actionList/action'):
-        #for item in root.findall('./actionList/action'):
+        for item in root.findall('./actionList/action'):
             try: 
                 action_name = item.find('name')
             except:
@@ -143,7 +151,7 @@ class upnp_service:
         args['Speed'] = DEFAULT_PLAY_SPEED   
         msg_body = SOAP_BODY_TEMPLATE() 
         
-        header_soapaction = SOAPACTION_TEMPLATE.format(service=self.service_id,serviceType=self.service_type, v=SERVICE_VER, serviceAction='Play')
+        header_soapaction = SOAPACTION_TEMPLATE.format(service=self.service_id,serviceType=self.service_type, v=SERVICE_VER, actionName='Play')
         header = SOAP_HEADER_TEMPLATE
         header['Content-Length'] = len(msg_body)
         header['SOAPACTION'] = header_soapaction
@@ -159,18 +167,21 @@ class upnp_service:
     def invoke_SetAVTransportURI(self):
         
         args = {}
-        header_soapaction = SOAPACTION_TEMPLATE.format(service=self.service_id,serviceType=self.seviceType,v=SERVICE_VER, serviceAction='SetAVTransportURI')
+        header_soapaction = SOAPACTION_TEMPLATE.format(service=self.service_id,serviceType=self.service_type,v=SERVICE_VER, actionName='SetAVTransportURI')
         target_uri = 'http://localhost:5000/media/flower.jpg'
         
         args['InstanceID'] = 0
         args['CurrentURI'] = target_uri
+
+        attr = wrap_in_xml(args)
         
-        msg_body = SOAP_BODY_TEMPLATE.format(actionName='SetAVTransportURI', serviceType='AVTransport', version='1', arguments=args)
+        msg_body = SOAP_BODY_TEMPLATE.format(actionName='SetAVTransportURI', serviceType='AVTransport', version='1', arguments=attr)
               
         SOAP_HEADER_TEMPLATE['Content-Length'] = len(msg_body)
         SOAP_HEADER_TEMPLATE['SOAPACTION'] = header_soapaction
        
         resp = urllib2.Request(self.control_url, data=msg_body, headers=SOAP_HEADER_TEMPLATE)
+        print resp
         ret = urllib2.urlopen(resp)
         ret_msg = ret.red()
         print ret_msg
@@ -178,17 +189,10 @@ class upnp_service:
 
 
 def xml_to_info(xml, root_url):
-    #with open('xiaomi.xml','rt') as fh:
-    #    xml = fh.read()
-    
-    
     service_list = []
     xml = re.sub(' xmlns=\"[^\"]+\"','', xml, 1)
     info = xt.fromstring(xml)    
-    '''
-    for item in info.iter():
-        print '{} = {}'.format(item.tag,  item.text.encode('utf8')) 
-    '''
+    
     friendly_name = info.find('./device/friendlyName').text 
     print friendly_name
   
@@ -208,11 +212,10 @@ def xml_to_info(xml, root_url):
         service_node.set_control_url(control_url)
         
         print(service_node)
-
-
         
         service_node.get_service_actions()
         service_list.append(service_node)        
-
+        if service_node.AV_capapable():
+            service_node.invoke_SetAVTransportURI()
         
     
