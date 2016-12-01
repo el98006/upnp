@@ -7,6 +7,7 @@ Created on Nov 2, 2016
 import urllib2
 import re
 import xml.etree.ElementTree as xt
+from urllib2 import HTTPError, URLError
 
 
 
@@ -180,10 +181,17 @@ class upnp_service:
         SOAP_HEADER_TEMPLATE['SOAPACTION'] = header_soapaction
        
         print msg_body
-        req = urllib2.Request(self.control_url, data=msg_body, headers=SOAP_HEADER_TEMPLATE)
-        resp = urllib2.urlopen(req).read()
-        print resp
-        
+        try: 
+            req = urllib2.Request(self.control_url, data=msg_body, headers=SOAP_HEADER_TEMPLATE)
+            resp = urllib2.urlopen(req).read()
+        except HTTPError as e:
+            print e.reason
+        except URLError as e:
+            print e.reason
+        else:
+            print resp
+            
+
 
 
 def xml_to_info(xml, root_url):
