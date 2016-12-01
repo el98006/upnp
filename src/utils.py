@@ -29,7 +29,7 @@ SOAP_BODY_TEMPLATE ='<?xml version="1.0"?>\
                     <s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/" s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">\
                     <s:Body> \
                     <u:{actionName} xmlns:u="urn:schemas-upnp-org:service:{serviceType}:{version}">\
-                    <argumentName>{arguments}</argumentName> \
+                    {arguments} \
                     </u:{actionName}>\
                     </s:Body>\
                     </s:Envelope>' 
@@ -157,10 +157,9 @@ class upnp_service:
         header['SOAPACTION'] = header_soapaction
         
        
-        resp = urllib2.Request(self.control_url, data=msg_body, headers=header)
-        ret = urllib2.urlopen(resp)
-        ret_msg = ret.read()
-        print ret_msg
+        req = urllib2.Request(self.control_url, data=msg_body, headers=header)
+        ret = urllib2.urlopen(req).read()
+        print ret
         
         
          
@@ -180,11 +179,10 @@ class upnp_service:
         SOAP_HEADER_TEMPLATE['Content-Length'] = len(msg_body)
         SOAP_HEADER_TEMPLATE['SOAPACTION'] = header_soapaction
        
-        resp = urllib2.Request(self.control_url, data=msg_body, headers=SOAP_HEADER_TEMPLATE)
+        print msg_body
+        req = urllib2.Request(self.control_url, data=msg_body, headers=SOAP_HEADER_TEMPLATE)
+        resp = urllib2.urlopen(req).read()
         print resp
-        ret = urllib2.urlopen(resp)
-        ret_msg = ret.red()
-        print ret_msg
         
 
 
