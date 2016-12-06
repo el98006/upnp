@@ -4,10 +4,10 @@ Created on Nov 2, 2016
 
 @author: eli
 '''
-import urllib2
+import urllib.urlencode
 import re
 import xml.etree.ElementTree as xt
-from urllib2 import HTTPError, URLError
+import urllib2.HTTPError, urllib2.URLError
 
 
 
@@ -168,10 +168,10 @@ class upnp_service:
         
         args = {}
         header_soapaction = SOAPACTION_TEMPLATE.format(service=self.service_id,serviceType=self.service_type,v=SERVICE_VER, actionName='SetAVTransportURI')
-        target_uri = 'http://localhost:5000/media/flower.jpg'
+        target_uri = 'http://us.napster.com/assets/logos/logo-napster@3x-4b04e0ffd563311e5789303bb7031a27.png'
         
         args['InstanceID'] = 0
-        args['CurrentURI'] = target_uri
+        args['CurrentURI'] = urllib.urlencode(target_uri)
 
         attr = wrap_in_xml(args)
         
@@ -184,9 +184,9 @@ class upnp_service:
         try: 
             req = urllib2.Request(self.control_url, data=msg_body, headers=SOAP_HEADER_TEMPLATE)
             resp = urllib2.urlopen(req).read()
-        except HTTPError as e:
+        except urllib2.HTTPError as e:
             print e.reason
-        except URLError as e:
+        except urllib2.URLError as e:
             print e.reason
         else:
             print resp
