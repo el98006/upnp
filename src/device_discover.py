@@ -5,8 +5,7 @@ Created on Nov 1, 2016
 '''
 import urllib2
 import socket
-import xml.etree.ElementTree as xt
-from utils import xml_to_info
+from utils import xml_to_info, AVService
 
 
 SSDP_BROADCAST_PORT = 1900
@@ -26,11 +25,16 @@ SSDP_BROADCAST_MSG = "\r\n".join(SSDP_BROADCAST_PARAMS)
 
 def register_dev(url_list):
     
+    devices = {}
     for url in url_list:
         fh = urllib2.urlopen(url)
         dev_details = fh.read()
         print url
-        xml_to_info(dev_details, url)
+        device =  xml_to_info(dev_details, url)
+        if device:
+            device_name, services = device
+            devices[device_name] = services
+    return devices
         
         
     
@@ -42,7 +46,6 @@ def probe_dev(timeout=3.0):
     s.sendto(SSDP_BROADCAST_MSG.encode("UTF-8"),(SSDP_BROADCAST_ADDR, SSDP_BROADCAST_PORT))
     s.settimeout(timeout)
      
-    devices = []
      
     while True:
          
@@ -61,14 +64,36 @@ def probe_dev(timeout=3.0):
    
     device_urls = [device["location"] for device in devices if "AVTransport" in device['st']]
     
-    register_dev(device_urls)
+    devices = register_dev(device_urls)
+    return devices
     
-    
-         
+def send_to_dev(service_list):
+    for s in service_list:
+        if isinstance(s, AVService):
+            s.invoke_SetAVTransportURI()
+            s.invoke_PLAY()       
+              
          
 if __name__ == '__main__':
     devices = probe_dev(10)
+    if not devices: 
+        print ('device availabe for test, exiting')
+        exit
+        
+    dev_name = input('choose the device to test')
+    while not (dev_name in devices.keys()):
+        print('invalid device name\n')
+        dev_name = input('choose the device to test')
+        if dev_name == None:
+            break
     
+    send_to_dev(devices[dev_name])
+    
+        
+        
+    
+    
+            
     
          
 
