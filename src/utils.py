@@ -4,10 +4,10 @@ Created on Nov 2, 2016
 
 @author: eli
 '''
-import urllib2
+import urllib.urlencode
 import re
 import xml.etree.ElementTree as xt
-from urllib2 import HTTPError, URLError
+import urllib2.HTTPError, urllib2.URLError
 
 
 
@@ -16,7 +16,7 @@ A_ARG_TYPE_InstanceID = 1
 DEFAULT_PLAY_SPEED = 1
 SERVICE_VER = '1'
 
-NAME_SPACE = {'service_type': 'urn:schemas-upnp-org:service', 'service_id':'urn:upnp-org'}
+NAME_SPACE = {'service_type': 'urn:schemas-upnp-org:service:', 'service_id':'urn:upnp-org'}
 SERVICE_NAMESPACE ='urn:schemas-upnp-org:service-1-0'
 
 SOAP_HEADER_TEMPLATE = {
@@ -152,11 +152,12 @@ class AVService(UpnpService):
         
         args = {}
         header_soapaction = SOAPACTION_TEMPLATE.format(service=self.service_id,serviceType=self.service_type,v=SERVICE_VER, actionName='SetAVTransportURI')
-        #target_uri = 'http://localhost:5000/media/flower.jpg'
         target_uri = media_uri
+
+        #target_uri = 'http://us.napster.com/assets/logos/logo-napster@3x-4b04e0ffd563311e5789303bb7031a27.png'
         
         args['InstanceID'] = 0
-        args['CurrentURI'] = target_uri
+        args['CurrentURI'] = urllib.urlencode(target_uri)
 
         attr = wrap_in_xml(args)
         
@@ -169,9 +170,9 @@ class AVService(UpnpService):
         try: 
             req = urllib2.Request(self.control_url, data=msg_body, headers=SOAP_HEADER_TEMPLATE)
             resp = urllib2.urlopen(req).read()
-        except HTTPError as e:
+        except urllib2.HTTPError as e:
             print e.reason
-        except URLError as e:
+        except urllib2.URLError as e:
             print e.reason
         else:
             print resp
@@ -209,7 +210,7 @@ def xml_to_info(xml, root_url):
         s_params['type'] = re.sub(NAME_SPACE['service_type'], '', s_type)
         
         service_id = s.find('serviceId').text
-        s_params['id'] = re.sub(NAME_SPACE['service_id'], '',s_type )
+        s_params['id'] = re.sub(NAME_SPACE['service_id'], '', service_id )
 
       
         host_ip_port = extract_host_info(root_url)
@@ -217,7 +218,7 @@ def xml_to_info(xml, root_url):
         
         s_params['control_url'] = host_ip_port + s.find('controlURL').text
         
-        if s_type == ':AVTransport:1':
+        if s_params['type'] == 'AVTransport:1':
             service_node = AVService(s_params)
             av_playable = True
         else: 
@@ -228,7 +229,7 @@ def xml_to_info(xml, root_url):
         service_list.append(service_node)        
      
     if av_playable: 
-        return {'name':service_list} 
+        return {friendly_name:service_list} 
     else: 
         return None   
         

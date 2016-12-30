@@ -3,7 +3,7 @@ Created on Nov 11, 2016
 
 @author: eric
 '''
-from flask import Flask,send_from_directory,request, render_template, url_for, Response
+from flask import Flask,send_from_directory,send_file, request, render_template, url_for, Response
 import os
 
 #from flask import Response
@@ -25,6 +25,13 @@ def upload():
             return render_template('index.html', filename=fname)
     return render_template('index.html')
 
+@app.route('/download/<path:filename>')
+def download_file(filename):
+    file_dir = os.path.join(os.path.dirname(__file__), 'media')
+    file_path = os.path.join(file_dir, filename)
+    return(send_file(file_path, as_attachment=True)) 
+
+ 
 @app.route('/media/<path:filename>')
 def get_media(filename):
     my_dir = os.path.dirname(__file__)
