@@ -4,10 +4,10 @@ Created on Nov 2, 2016
 
 @author: eli
 '''
-import urllib.urlencode
+import urllib
 import re
 import xml.etree.ElementTree as xt
-import urllib2.HTTPError, urllib2.URLError
+import urllib2
 
 
 
@@ -16,7 +16,8 @@ A_ARG_TYPE_InstanceID = 1
 DEFAULT_PLAY_SPEED = 1
 SERVICE_VER = '1'
 
-NAME_SPACE = {'service_type': 'urn:schemas-upnp-org:service:', 'service_id':'urn:upnp-org'}
+SERVICE_TYPE_NAMESPACE = 'urn:schemas-upnp-org:service'
+SERVICE_ID_NAMESPACE =  'urn:upnp-org:serviceId'
 SERVICE_NAMESPACE ='urn:schemas-upnp-org:service-1-0'
 
 SOAP_HEADER_TEMPLATE = {
@@ -27,13 +28,13 @@ SOAP_HEADER_TEMPLATE = {
 } 
 
 SOAP_BODY_TEMPLATE ='<?xml version="1.0"?>\
-                    <s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/" s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">\
-                    <s:Body> \
-                    <u:{actionName} xmlns:u="urn:schemas-upnp-org:service:{serviceType}:{version}">\
-                    {arguments} \
-                    </u:{actionName}>\
-                    </s:Body>\
-                    </s:Envelope>' 
+<s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/" s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">\
+<s:Body> \
+<u:{actionName} xmlns:u="urn:schemas-upnp-org:service:{serviceType}:{version}">\
+{arguments} \
+</u:{actionName}>\
+</s:Body>\
+</s:Envelope>' 
  
 
 SOAPACTION_TEMPLATE = "urn:schemas-upnp-org:{service}:{serviceType}:{v}#{actionName}"
@@ -85,12 +86,22 @@ class UpnpService(object):
     control_url = /upnp/control/AVTransport1
     eventSubURL = /upnp/event/AVTransport1
     '''
-    def __init__(self, init_params):
-        self.service_id = init_params['id']
-        self.service_type = init_params['type']
-        self.control_url = init_params['control_url']
-        self.event_sub_url = None
-        self.scpdurl = init_params['scpdurl']
+    def __init__(self, s_id, s_type, **kwargs):
+        self.service_id =s_id
+        self.service_type = s_type
+        if  'control_url'  in kwargs.keys():
+            self.control_url = kwargs['control_url']
+        else:
+            self.control_url = None
+        if 'event_sub_url' in kwargs.keys():
+            self.event_sub_url = kwargs['event_sub_url']
+        else: 
+            self.event_sub_url = None
+        
+        if 'scpd_url' in kwargs.keys():
+            self.scpd_url = kwargs['scpd_url']
+        else:
+            self.scpd_url = None
         self.action_list = {}
 
     def set_event_sub_url(self, url):
@@ -108,7 +119,7 @@ class UpnpService(object):
         
         '''
         
-        fh = urllib2.urlopen(self.scpdurl)
+        fh = urllib2.urlopen(self.scpd_url)
         resp = fh.read()
         resp = re.sub(' xmlns=\"[^\"]+\"','', resp, 1)
         root = xt.fromstring(resp)
@@ -123,7 +134,7 @@ class UpnpService(object):
     
     def __repr__(self):
 
-        return 'id:{} type:{} \n scpdurl:{}, control_url:{}'.format(self.service_id, self.service_type, self.scpdurl, self.control_url )
+        return 'id:{}, type:{}, \n scpd_url:{}\n control_url:{}'.format(self.service_id, self.service_type, self.scpd_url, self.control_url )
     
     def AV_capapable(self):
         return (self.service_type == ':AVTransport:1')
@@ -132,32 +143,24 @@ class UpnpService(object):
         
         
     def subscribe_to_events(self, receiving_url):
-        fh = urllib2.urlopen(self.event_sub_url)
-      
-    
-        
-        
-        
-
-        
+        #fh = urllib2.urlopen(self.event_sub_url)
+        pass
         
          
     
 class AVService(UpnpService):
    
-    def __init__(self, service_metadata):
-        super.__init__(service_metadata)
+    def __init__(self, s_id, s_type, **kwargs):
+        UpnpService.__init__(self, s_id, s_type, **kwargs)
         
     def invoke_SetAVTransportURI(self, media_uri, *args,**kwargs):
         
         args = {}
         header_soapaction = SOAPACTION_TEMPLATE.format(service=self.service_id,serviceType=self.service_type,v=SERVICE_VER, actionName='SetAVTransportURI')
         target_uri = media_uri
-
-        #target_uri = 'http://us.napster.com/assets/logos/logo-napster@3x-4b04e0ffd563311e5789303bb7031a27.png'
         
         args['InstanceID'] = 0
-        args['CurrentURI'] = urllib.urlencode(target_uri)
+        args['CurrentURI'] = target_uri
 
         attr = wrap_in_xml(args)
         
@@ -181,55 +184,75 @@ class AVService(UpnpService):
         args = {}
         args['InstanceID'] = 0
         args['Speed'] = DEFAULT_PLAY_SPEED   
-        msg_body = SOAP_BODY_TEMPLATE() 
+        msg_body = SOAP_BODY_TEMPLATE
         
         header_soapaction = SOAPACTION_TEMPLATE.format(service=self.service_id,serviceType=self.service_type, v=SERVICE_VER, actionName='Play')
         header = SOAP_HEADER_TEMPLATE
         header['Content-Length'] = len(msg_body)
         header['SOAPACTION'] = header_soapaction
         
-       
-        req = urllib2.Request(self.control_url, data=msg_body, headers=header)
-        ret = urllib2.urlopen(req).read()
-        print ret   
-
-
-
+        try:
+            req = urllib2.Request(self.control_url, data=msg_body, headers=header)
+            ret = urllib2.urlopen(req).read()
+        except urllib2.HTTPError as e:
+            print e.reason
+        except urllib2.URLError as e:
+            print e.reason
+        else:
+            print ret
+        
+        
+def get_matching_data(full_str, match_pattern, match_index=1):
+    if full_str is None:
+        return None
+    else:
+        _pattern = re.compile(match_pattern)
+        
+        m_group = re.match(_pattern, full_str)
+        if m_group and m_group.group(match_index):
+            return m_group.group(match_index)
+        else:
+            return None
+    
 def xml_to_info(xml, root_url):
     service_list = []
     xml = re.sub(' xmlns=\"[^\"]+\"','', xml, 1)
     info = xt.fromstring(xml)
-    s_params={}    
     av_playable = False
+    s_params = {}
     
     friendly_name = info.find('./device/friendlyName').text 
     print friendly_name
   
     for s in info.findall('./device/serviceList/service'):  
-        s_type = s.find('serviceType').text
-        s_params['type'] = re.sub(NAME_SPACE['service_type'], '', s_type)
+        s_type = get_matching_data(s.find('serviceType').text, SERVICE_TYPE_NAMESPACE + ':(\w+):(\d+)')
+        s_id = get_matching_data(s.find('serviceId').text, SERVICE_ID_NAMESPACE+':(\w+)')
         
-        service_id = s.find('serviceId').text
-        s_params['id'] = re.sub(NAME_SPACE['service_id'], '', service_id )
-
-      
+        
         host_ip_port = extract_host_info(root_url)
-        s_params['scpd_url'] = host_ip_port + s.find('SCPDURL').text
         
-        s_params['control_url'] = host_ip_port + s.find('controlURL').text
+        scpd_url = s.find('SCPDURL')
+        if scpd_url is not None:
+            scpd_url = host_ip_port + scpd_url.text
+            s_params['scpd_url'] = scpd_url
         
-        if s_params['type'] == 'AVTransport:1':
-            service_node = AVService(s_params)
+        control_url = s.find('controlURL')
+        if control_url is not None:
+            control_url = host_ip_port + control_url.text
+            s_params['control_url'] = control_url
+        
+        if s_type is not None:
+            service_node = AVService(s_id, s_type, **s_params)
             av_playable = True
         else: 
-            service_node = UpnpService(s_params)
+            service_node = UpnpService(s_id, s_type, **s_params)
             service_node.get_service_actions()
         
         print(service_node)
         service_list.append(service_node)        
      
     if av_playable: 
-        return {friendly_name:service_list} 
+        return (friendly_name,service_list) 
     else: 
         return None   
         

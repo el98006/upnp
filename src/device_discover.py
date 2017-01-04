@@ -6,6 +6,7 @@ Created on Nov 1, 2016
 import urllib2
 import socket
 from utils import xml_to_info, AVService
+import base64
 
 
 SSDP_BROADCAST_PORT = 1900
@@ -23,22 +24,23 @@ SSDP_BROADCAST_MSG = "\r\n".join(SSDP_BROADCAST_PARAMS)
 
 
 
-def register_dev(url_list):
+def register_dev(url_list): 
     
-    devices = {}
+    devices = []
     for url in url_list:
         fh = urllib2.urlopen(url)
         dev_details = fh.read()
         print url
         device =  xml_to_info(dev_details, url)
         if device:
-            device_name, services = device
-            devices[device_name] = services
+            devices.append(device)
     return devices
         
         
     
 def probe_dev(timeout=3.0):
+    devices =[]
+    
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
     s.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 4)
     s.bind(("",SSDP_BROADCAST_PORT+10))
@@ -67,28 +69,29 @@ def probe_dev(timeout=3.0):
     devices = register_dev(device_urls)
     return devices
     
-def send_to_dev(service_list):
+def send_to_dev(device_node):
+    s_name, service_list = device_node
     for s in service_list:
         if isinstance(s, AVService):
-            s.invoke_SetAVTransportURI()
-            s.invoke_PLAY()       
-              
-         
+            s.invoke_SetAVTransportURI('http://www.baidu.com/img/bd_logo1.png')
+            s.invoke_PLAY()  
+                 
+def  list_device(devices):
+    for d in devices:
+        friendly_name, _ = d
+        print '{} -> {}'.format(devices.index(d), friendly_name.encode('utf-8'))
+                    
+    
 if __name__ == '__main__':
     devices = probe_dev(10)
-    if not devices: 
-        print ('device availabe for test, exiting')
-        exit
+    if devices is None: 
+        print ('device available for test, exiting')
+        exit()   
+    else:
+        list_device(devices)
+        choice = input('choose the device to test')
+        send_to_dev(devices[choice])
         
-    dev_name = input('choose the device to test')
-    while not (dev_name in devices.keys()):
-        print('invalid device name\n')
-        dev_name = input('choose the device to test')
-        if dev_name == None:
-            break
-    
-    send_to_dev(devices[dev_name])
-    
         
         
     
