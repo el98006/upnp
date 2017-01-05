@@ -6,11 +6,9 @@ Created on Nov 1, 2016
 import urllib2
 import socket
 from utils import xml_to_info, AVService
-import base64
 
 
 SSDP_BROADCAST_PORT = 1900
-#SSDP_BROADCAST_ADDR = "10.151.61.255"
 SSDP_BROADCAST_ADDR = "239.255.255.250"
 
 SSDP_BROADCAST_PARAMS = ["M-SEARCH * HTTP/1.1",
@@ -70,7 +68,7 @@ def probe_dev(timeout=3.0):
     return devices
     
 def send_to_dev(device_node):
-    s_name, service_list = device_node
+    _, service_list = device_node
     for s in service_list:
         if isinstance(s, AVService):
             s.invoke_SetAVTransportURI('http://www.baidu.com/img/bd_logo1.png')
@@ -85,7 +83,7 @@ def  list_device(devices):
 if __name__ == '__main__':
     devices = probe_dev(10)
     if devices is None: 
-        print ('device available for test, exiting')
+        print ('No device available for test, exiting')
         exit()   
     else:
         list_device(devices)

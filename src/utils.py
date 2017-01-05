@@ -4,7 +4,6 @@ Created on Nov 2, 2016
 
 @author: eli
 '''
-import urllib
 import re
 import xml.etree.ElementTree as xt
 import urllib2
@@ -28,16 +27,18 @@ SOAP_HEADER_TEMPLATE = {
 } 
 
 SOAP_BODY_TEMPLATE ='<?xml version="1.0"?>\
-<s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/" s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">\
+<s:Envelope \
+xmlns:s="http://schemas.xmlsoap.org/soap/envelope/" \
+s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"> \
 <s:Body> \
 <u:{actionName} xmlns:u="urn:schemas-upnp-org:service:{serviceType}:{version}">\
-{arguments} \
+<argumentName> {arguments} </argumentName>\
 </u:{actionName}>\
 </s:Body>\
 </s:Envelope>' 
  
 
-SOAPACTION_TEMPLATE = "urn:schemas-upnp-org:{service}:{serviceType}:{v}#{actionName}"
+SOAPACTION_TEMPLATE = "urn:schemas-upnp-org:service:{serviceType}:{v}#{actionName}"
 
 SUB_MSG_TEMPLATE = ['SUBSCRIBE {} HTTP/1.1',  
 'HOST: {}',
@@ -82,10 +83,7 @@ class upnp_action:
       
         
 class UpnpService(object):
-    ''' service_type: 'AVTransport:1', serviceId: AVTransport, scpdurl:'/AVTransport1.xml'
-    control_url = /upnp/control/AVTransport1
-    eventSubURL = /upnp/event/AVTransport1
-    '''
+    
     def __init__(self, s_id, s_type, **kwargs):
         self.service_id =s_id
         self.service_type = s_type
@@ -129,15 +127,15 @@ class UpnpService(object):
             except:
                 continue
             new_action = upnp_action(action_name.text)
-            print new_action
+            #print new_action
             self.action_list[action_name] = new_action
     
     def __repr__(self):
 
-        return 'id:{}, type:{}, \n scpd_url:{}\n control_url:{}'.format(self.service_id, self.service_type, self.scpd_url, self.control_url )
+        return 'id:{}, type:{} \n scpd_url:{}\n control_url:{}'.format(self.service_id, self.service_type, self.scpd_url, self.control_url )
     
     def AV_capapable(self):
-        return (self.service_type == ':AVTransport:1')
+        return (self.service_type == 'AVTransport')
 
 
         
@@ -156,7 +154,7 @@ class AVService(UpnpService):
     def invoke_SetAVTransportURI(self, media_uri, *args,**kwargs):
         
         args = {}
-        header_soapaction = SOAPACTION_TEMPLATE.format(service=self.service_id,serviceType=self.service_type,v=SERVICE_VER, actionName='SetAVTransportURI')
+        header_soapaction = SOAPACTION_TEMPLATE.format(serviceType=self.service_type,v=SERVICE_VER, actionName='SetAVTransportURI')
         target_uri = media_uri
         
         args['InstanceID'] = 0
@@ -168,7 +166,8 @@ class AVService(UpnpService):
               
         SOAP_HEADER_TEMPLATE['Content-Length'] = len(msg_body)
         SOAP_HEADER_TEMPLATE['SOAPACTION'] = header_soapaction
-       
+        
+        print SOAP_HEADER_TEMPLATE
         print msg_body
         try: 
             req = urllib2.Request(self.control_url, data=msg_body, headers=SOAP_HEADER_TEMPLATE)
@@ -241,7 +240,7 @@ def xml_to_info(xml, root_url):
             control_url = host_ip_port + control_url.text
             s_params['control_url'] = control_url
         
-        if s_type is not None:
+        if s_type == 'AVTransport':
             service_node = AVService(s_id, s_type, **s_params)
             av_playable = True
         else: 
